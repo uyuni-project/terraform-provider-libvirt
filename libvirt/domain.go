@@ -155,17 +155,19 @@ func domainGetIfacesInfo(virConn *libvirt.Libvirt, domain libvirt.Domain, rd *sc
 	}
 
 	qemuAgentEnabled := rd.Get("qemu_agent").(bool)
+	var interfaces []libvirt.DomainInterface
+	
 	if qemuAgentEnabled {
-		log.Print("[DEBUG] Not implemented")
+		interfaces, err = virConn.DomainInterfaceAddresses(domain, uint32(libvirt.DomainInterfaceAddressesSrcAgent), 0)
+		log.Print("[DEBUG] qemu-agent is used")
 	} else {
 		log.Printf("[DEBUG] qemu-agent is not used")
 	}
-	var interfaces []libvirt.DomainInterface
+	if interfaces == nil{
+		log.Print("[DEBUG] no interfaces could be obtained with qemu-agent: falling back to the libvirt API")
+		interfaces, err = virConn.DomainInterfaceAddresses(domain, uint32(libvirt.DomainInterfaceAddressesSrcLease), 0)
+	}
 
-	// get all the interfaces attached to libvirt networks
-	log.Print("[DEBUG] no interfaces could be obtained with qemu-agent: falling back to the libvirt API")
-
-	interfaces, err = virConn.DomainInterfaceAddresses(domain, uint32(libvirt.DomainInterfaceAddressesSrcLease), 0)
 	if err != nil {
 		switch err.(type) {
 		default:
